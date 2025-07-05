@@ -1,6 +1,6 @@
 // src/composables/useWeather.ts
 import { ref } from 'vue'
-import type { WeatherApiResponse } from '@/types/openweathermap'
+import type { WeatherApiResponse, ForecastApiResponse, ForecastData } from '@/types/openweathermap' // ★修正: ForecastApiResponse と ForecastData もインポート
 
 export interface CitySuggestion {
   name: string
@@ -17,14 +17,15 @@ export interface WeatherData {
   humidity: number
   lat: number
   lon: number
-  // ★追加項目★
-  windSpeed: number // 風速
-  windDeg: number // 風向（度）
-  pressure: number // 気圧
-  clouds: number // 雲量
-  sunrise: number // 日の出時刻 (Unix UTC)
-  sunset: number // 日の入り時刻 (Unix UTC)
-  iconCode: string // 天気アイコンコード
+  windSpeed: number
+  windDeg: number
+  pressure: number
+  clouds: number
+  sunrise: number
+  sunset: number
+  iconCode: string
+  // ★追加: 予報データ★
+  forecast: ForecastData[] | null;
 }
 
 // OpenWeatherMap のジオコーディングAPI（都市名→緯度経度）
@@ -45,6 +46,10 @@ export async function fetchWeatherByName(city: string): Promise<WeatherData> {
   )}&units=metric&lang=ja&appid=${key}`
   const res = await fetch(url)
   const data = (await res.json()) as WeatherApiResponse
+
+  // ★追加: 予報データも同時に取得する★
+  const forecastData = await fetchForecastByCoord(data.coord.lat, data.coord.lon);
+
   return {
     cityName: data.name,
     description: data.weather[0].description,
@@ -53,7 +58,6 @@ export async function fetchWeatherByName(city: string): Promise<WeatherData> {
     humidity: data.main.humidity,
     lat: data.coord.lat,
     lon: data.coord.lon,
-    // ★追加項目のデータ抽出★
     windSpeed: data.wind.speed,
     windDeg: data.wind.deg,
     pressure: data.main.pressure,
@@ -61,6 +65,7 @@ export async function fetchWeatherByName(city: string): Promise<WeatherData> {
     sunrise: data.sys.sunrise,
     sunset: data.sys.sunset,
     iconCode: data.weather[0].icon,
+    forecast: forecastData, // ★予報データを追加★
   }
 }
 
@@ -75,6 +80,10 @@ export async function fetchWeatherByCoord(
   }&units=metric&lang=ja&appid=${key}`
   const res = await fetch(url)
   const data = (await res.json()) as WeatherApiResponse
+
+  // ★追加: 予報データも同時に取得する★
+  const forecastData = await fetchForecastByCoord(data.coord.lat, data.coord.lon);
+
   return {
     cityName: data.name,
     description: data.weather[0].description,
@@ -83,7 +92,6 @@ export async function fetchWeatherByCoord(
     humidity: data.main.humidity,
     lat: data.coord.lat,
     lon: data.coord.lon,
-    // ★追加項目のデータ抽出★
     windSpeed: data.wind.speed,
     windDeg: data.wind.deg,
     pressure: data.main.pressure,
@@ -91,5 +99,32 @@ export async function fetchWeatherByCoord(
     sunrise: data.sys.sunrise,
     sunset: data.sys.sunset,
     iconCode: data.weather[0].icon,
+    forecast: forecastData, // ★予報データを追加★
   }
+}
+
+// ★追加: 緯度経度から予報データを取得する関数★
+export async function fetchForecastByCoord(
+  lat: number,
+  lon: number
+): Promise<ForecastData[]> {
+  const key = import.meta.env.VITE_OWM_API_KEY
+  const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${
+    lon
+  }&units=metric&lang=ja&appid=${key}`
+  const res = await fetch(url)
+  const data = (await res.json()) as ForecastApiResponse
+
+  // 予報リストから必要な情報を抽出
+  const forecastList: ForecastData[] = [];
+  data.list.forEach(item => {
+    forecastList.push({
+      time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      description: item.weather[0].description,
+      temp: item.main.temp,
+      iconCode: item.weather[0].icon,
+    });
+  });
+
+  return forecastList;
 }

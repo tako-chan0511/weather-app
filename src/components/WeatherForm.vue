@@ -47,17 +47,30 @@
         <p>日の出: {{ formattedSunrise }}</p>
         <p>日の入り: {{ formattedSunset }}</p>
       </div>
+
+      <div class="weather-forecast" v-if="weather.forecast && weather.forecast.length > 0">
+        <h3>5日間 / 3時間ごとの予報</h3>
+        <div class="forecast-list">
+          <div v-for="(item, index) in weather.forecast" :key="index" class="forecast-item">
+            <p class="forecast-time">{{ item.time }}</p>
+            <img :src="`https://openweathermap.org/img/wn/${item.iconCode}.png`" :alt="item.description" class="forecast-icon" />
+            <p class="forecast-temp">{{ item.temp.toFixed(1) }}°C</p>
+            <p class="forecast-desc">{{ item.description }}</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue' // computed もインポート
+import { ref, watch, computed } from 'vue'
 import CityPickerMap from '@/components/CityPickerMap.vue'
 import {
   searchCities,
   fetchWeatherByCoord,
+  fetchWeatherByName, // ★修正: fetchWeatherByName もインポート
   CitySuggestion,
   WeatherData,
 } from '@/composables/useWeather'
@@ -69,7 +82,6 @@ const weather = ref<WeatherData | null>(null)
 const mapCenter = ref<[number, number]>([33.5903, 130.4017]); // 初期値は福岡
 const mapZoom = ref(12);
 
-// ★追加: 天気アイコンURLを生成するcomputedプロパティ★
 const weatherIconUrl = computed(() => {
   if (weather.value?.iconCode) {
     return `https://openweathermap.org/img/wn/${weather.value.iconCode}@2x.png`;
@@ -77,16 +89,13 @@ const weatherIconUrl = computed(() => {
   return null;
 });
 
-// ★追加: 日の出時刻をフォーマットするcomputedプロパティ★
 const formattedSunrise = computed(() => {
   if (weather.value?.sunrise) {
-    // Unixタイムスタンプは秒単位なので、ミリ秒に変換
     return new Date(weather.value.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   return 'N/A';
 });
 
-// ★追加: 日の入り時刻をフォーマットするcomputedプロパティ★
 const formattedSunset = computed(() => {
   if (weather.value?.sunset) {
     return new Date(weather.value.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -117,9 +126,10 @@ async function selectCity(s: CitySuggestion) {
   mapCenter.value = [s.lat, s.lon];
   mapZoom.value = 12;
 
+  // ★修正: fetchWeatherByName ではなく fetchWeatherByCoord を呼び出す★
   const fetchedWeather = await fetchWeatherByCoord(s.lat, s.lon);
   if (fetchedWeather) {
-    weather.value = { ...fetchedWeather, lat: s.lat, lon: s.lon };
+    weather.value = fetchedWeather; // fetchWeatherByCoord が forecast を含むため直接代入
   }
 }
 
@@ -132,7 +142,7 @@ async function onMapSelect(lat: number, lon: number) {
 
   const fetchedWeather = await fetchWeatherByCoord(lat, lon);
   if (fetchedWeather) {
-    weather.value = { ...fetchedWeather, lat, lon };
+    weather.value = fetchedWeather; // fetchWeatherByCoord が forecast を含むため直接代入
   }
 }
 
@@ -192,7 +202,7 @@ watch(input, (newValue) => {
 .weather-result h2 { text-align: center; margin-bottom: 10px; color: #333; }
 .weather-result p { margin-bottom: 5px; }
 
-/* ★追加スタイル: 天気アイコンと説明の配置★ */
+/* 天気アイコンと説明の配置 */
 .weather-summary {
     display: flex;
     align-items: center;
@@ -200,7 +210,7 @@ watch(input, (newValue) => {
     margin: 10px 0;
 }
 .weather-icon {
-    width: 60px; /* アイコンサイズ */
+    width: 60px;
     height: 60px;
     margin-right: 10px;
 }
@@ -214,5 +224,51 @@ watch(input, (newValue) => {
     border-top: 1px dashed #f0f0f0;
     font-size: 0.9em;
     color: #555;
+}
+
+/* ★追加スタイル: 予報リストの表示★ */
+.weather-forecast { margin-top: 20px; padding-top: 20px; border-top: 1px dashed #eee; text-align: center; }
+.weather-forecast h3 { margin-bottom: 15px; color: #333; }
+.forecast-list {
+    display: flex;
+    overflow-x: auto; /* 横スクロール可能に */
+    gap: 15px;
+    padding-bottom: 10px; /* スクロールバーのための余白 */
+}
+.forecast-item {
+    flex-shrink: 0; /* 縮まない */
+    width: 80px; /* 項目ごとの幅 */
+    text-align: center;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px 5px;
+    background-color: #fcfcfc;
+}
+.forecast-item:hover {
+    background-color: #f0f0f0;
+}
+.forecast-time {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #555;
+}
+.forecast-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+}
+.forecast-temp {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    margin-top: 5px;
+}
+.forecast-desc {
+    font-size: 0.8em;
+    color: #888;
+    white-space: nowrap; /* テキストを折り返さない */
+    overflow: hidden;
+    text-overflow: ellipsis; /* はみ出したテキストを...で表示 */
 }
 </style>
