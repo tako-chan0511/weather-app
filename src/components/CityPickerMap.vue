@@ -5,10 +5,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import * as L from 'leaflet'; // Leafletをインポート
 
 const props = defineProps<{
   initialCenter: [number, number]
   initialZoom?: number
+}>()
+
+// ★追加: 親にイベントを通知するための defineEmits
+const emit = defineEmits<{
+  (e: 'select', lat: number, lon: number): void // 'select' イベントを定義
 }>()
 
 const mapContainer = ref<HTMLDivElement|null>(null)
@@ -27,8 +33,9 @@ onMounted(() => {
   }).addTo(map)
 
   map.on('click', e => {
-    // クリック座標を親に通知したい場合は emit などで渡す
+    // クリック座標を親に通知
     console.log('選択された座標:', e.latlng.lat, e.latlng.lng)
+    emit('select', e.latlng.lat, e.latlng.lng) // ★修正: emit で座標を親に送る
   })
 })
 </script>
@@ -36,6 +43,6 @@ onMounted(() => {
 <style scoped>
 .map-container {
   width: 100%;
-  height: 400px;
+  height: 400px; /* App.vue で上書きされる可能性あり */
 }
 </style>
