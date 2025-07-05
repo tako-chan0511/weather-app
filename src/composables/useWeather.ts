@@ -15,6 +15,8 @@ export interface WeatherData {
   temp: number
   feels_like: number
   humidity: number
+  lat: number // ★追加: 緯度
+  lon: number // ★追加: 経度
 }
 
 // OpenWeatherMap のジオコーディングAPI（都市名→緯度経度）
@@ -41,6 +43,8 @@ export async function fetchWeatherByName(city: string): Promise<WeatherData> {
     temp: data.main.temp,
     feels_like: data.main.feels_like,
     humidity: data.main.humidity,
+    lat: data.coord.lat, // ★追加
+    lon: data.coord.lon, // ★追加
   }
 }
 
@@ -61,5 +65,7 @@ export async function fetchWeatherByCoord(
     temp: data.main.temp,
     feels_like: data.main.feels_like,
     humidity: data.main.humidity,
+    lat: data.coord.lat, // ★追加
+    lon: data.coord.lon, // ★追加
   }
 }

@@ -19,16 +19,15 @@
       </ul>
     </div>
 
-    <!-- 地図コンポーネント -->
     <CityPickerMap
       :initialCenter="[33.5903, 130.4017]"
       :initialZoom="12"
       @select="onMapSelect"
     />
 
-    <!-- 天気表示 -->
     <div v-if="weather" class="weather-result">
       <h2>{{ weather.cityName }} の天気</h2>
+      <p>緯度: {{ weather.lat.toFixed(4) }}, 経度: {{ weather.lon.toFixed(4) }}</p>
       <p>{{ weather.description }}</p>
       <p>
         気温: {{ weather.temp.toFixed(1) }}°C
@@ -75,8 +74,13 @@ async function onMapSelect(lat: number, lon: number) {
   console.log(`Selected coordinates: ${lat}, ${lon}`)
   weather.value = null
   // テキスト入力欄に座標も残しておきたい場合
-  input.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`
-  weather.value = await fetchWeatherByCoord(lat, lon)
+  input.value = `緯度: ${lat.toFixed(4)}, 経度: ${lon.toFixed(4)}` // ★修正: input に緯度経度を表示
+  
+  // fetchWeatherByCoord から返される WeatherData に lat と lon を含める必要がある
+  const fetchedWeather = await fetchWeatherByCoord(lat, lon);
+  if (fetchedWeather) {
+    weather.value = { ...fetchedWeather, lat, lon }; // ★修正: lat と lon を追加して保存
+  }
 }
 </script>
 
