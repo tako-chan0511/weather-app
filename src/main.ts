@@ -6,13 +6,13 @@ import App from './App.vue'
 import 'leaflet/dist/leaflet.css'
 
 // 2) アイコンのパスを手動で上書き
-// Leaflet の L オブジェクトがグローバルに利用可能であることを確認
-import { Icon } from 'leaflet'
+// ★修正: Leaflet 全体を L としてインポートし、L.Icon を使用
+import * as L from 'leaflet'
+
 // Leaflet のデフォルトアイコンのパスを修正 (Vite 環境での問題回避)
-// L.Icon.Default.mergeOptions を L.Icon.mergeOptions に変更
-Icon.Default.mergeOptions({
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
-  iconUrl:       new URL('leaflet/dist/images/marker-icon.png',     import.meta.url).href,
+L.Icon.Default.mergeOptions({ // ★修正: L.Icon.Default を使用
+  iconRetinaUrl: new URL('./leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+  iconUrl:       new URL('./leaflet/dist/images/marker-icon.png',     import.meta.url).href,
   shadowUrl:     new URL('leaflet/dist/images/marker-shadow.png',   import.meta.url).href,
 })
 
