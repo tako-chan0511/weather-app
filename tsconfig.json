@@ -1,16 +1,27 @@
+// tsconfig.json
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
-    "types": ["vite/client", "node"],
+    // ESNext モジュールを使う (import.meta が有効になる)
+    "module": "esnext",
+    // 生成ターゲットも上位にしておくと安心
+    "target": "esnext",
 
-    // ここを追加：
-    "noEmit": true
+    "moduleResolution": "node",
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    "types": ["vite/client", "node"],
+    "skipLibCheck": true,  // 外部ライブラリの型エラーを無視
+    "noEmit": true         // ビルド時に .js を出力しない
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "env.d.ts"
   ]
 }

@@ -1,0 +1,1 @@
+{"root":["./src/main.ts","./src/vite-env.d.ts","./src/composables/useweather.ts","./src/types/openweathermap.d.ts","./src/app.vue","./src/components/citypickermap.vue","./src/components/weatherform.vue","./env.d.ts"],"version":"5.8.3"}
