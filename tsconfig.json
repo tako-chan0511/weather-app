@@ -13,7 +13,7 @@
       "@/*": ["src/*"]
     },
 
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node","leaflet"],
     "skipLibCheck": true,  // 外部ライブラリの型エラーを無視
     "noEmit": true         // ビルド時に .js を出力しない
   },

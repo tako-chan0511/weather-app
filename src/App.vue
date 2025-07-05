@@ -1,19 +1,12 @@
+<!-- src/App.vue -->
 <template>
-  <div id="app">
-    <WeatherForm />
-    <!-- 将来的に地図から選択もしたい場合に備え、雛形を配置 -->
-    <CityPickerMap />
+  <div>
+    <!-- 福岡市中央区あたりを初期表示 -->
+    <CityPickerMap :initialCenter="[33.5902, 130.4017]" :initialZoom="13" />
+    <!-- クリック座標を受け取るロジックは後ほど -->
   </div>
 </template>
 
 <script setup lang="ts">
-import WeatherForm from './components/WeatherForm.vue'
-import CityPickerMap from './components/CityPickerMap.vue'
+import CityPickerMap from '@/components/CityPickerMap.vue'
 </script>
-
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  padding: 20px;
-}
-</style>

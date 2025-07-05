@@ -1,25 +1,41 @@
+<!-- src/components/CityPickerMap.vue -->
 <template>
-  <div class="map-placeholder">
-    <!-- ここに Leaflet 等を導入して座標→fetchWeatherByCoord 連携を実装 -->
-    <p>地図から都市を選択する機能は、後ほどこちらに実装します。</p>
-  </div>
+  <div ref="mapContainer" class="map-container"></div>
 </template>
 
 <script setup lang="ts">
-// 何も import しなくても最初に動くことを優先
+import { ref, onMounted } from 'vue'
+
+const props = defineProps<{
+  initialCenter: [number, number]
+  initialZoom?: number
+}>()
+
+const mapContainer = ref<HTMLDivElement|null>(null)
+
+onMounted(() => {
+  if (!mapContainer.value) return
+
+  // グローバルに読み込まれた L を使う
+  const map = L.map(mapContainer.value).setView(
+    props.initialCenter,
+    props.initialZoom || 13
+  )
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map)
+
+  map.on('click', e => {
+    // クリック座標を親に通知したい場合は emit などで渡す
+    console.log('選択された座標:', e.latlng.lat, e.latlng.lng)
+  })
+})
 </script>
 
 <style scoped>
-.map-placeholder {
+.map-container {
   width: 100%;
-  height: 300px;
-  margin-top: 40px;
-  background-color: #f0f0f0;
-  border: 2px dashed #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  font-style: italic;
+  height: 400px;
 }
 </style>

@@ -1,13 +1,27 @@
+<!-- index.html -->
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Vue + TS</title>
+    <title>Weather App</title>
+
+    <!-- ★ Leaflet の CSS を CDN から読み込む -->
+    <!-- integrity を削除 -->
+   <link
+     rel="stylesheet"
+     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+   />
   </head>
   <body>
     <div id="app"></div>
+
+    <!-- integrity を削除 -->
+   <script
+     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+   ></script>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

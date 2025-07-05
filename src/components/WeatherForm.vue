@@ -1,15 +1,33 @@
 <template>
   <div class="weather-form">
-    <input
-      v-model="input"
-      @keyup.enter="onSearch"
-      placeholder="都市名を入力"
+    <div class="search-container">
+      <input
+        v-model="input"
+        @keyup.enter="onSearch"
+        placeholder="都市名を入力"
+      />
+      <button @click="onSearch">取得</button>
+
+      <ul v-if="suggestions.length" class="suggestions">
+        <li
+          v-for="s in suggestions"
+          :key="`${s.name}-${s.lat}-${s.lon}`"
+          @click="selectCity(s)"
+        >
+          {{ s.name }}<span v-if="s.state">／{{ s.state }}</span> ({{ s.country }})
+        </li>
+      </ul>
+    </div>
+
+    <!-- 地図コンポーネント -->
+    <CityPickerMap
+      :initialCenter="[33.5903, 130.4017]"
+      :initialZoom="12"
+      @select="onMapSelect"
     />
-    <button @click="onSearch">取得</button>
 
-    <p v-if="error" class="error">{{ error }}</p>
-
-    <div v-else-if="weather" class="weather-result">
+    <!-- 天気表示 -->
+    <div v-if="weather" class="weather-result">
       <h2>{{ weather.cityName }} の天気</h2>
       <p>{{ weather.description }}</p>
       <p>
@@ -21,39 +39,52 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useWeather } from '@/composables/useWeather'
+import CityPickerMap from '@/components/CityPickerMap.vue'
+import {
+  searchCities,
+  fetchWeatherByCoord,
+  CitySuggestion,
+  WeatherData,
+} from '@/composables/useWeather'
 
 const input = ref('')
-const { weather, error, fetchWeather } = useWeather()
+const suggestions = ref<CitySuggestion[]>([])
+const weather = ref<WeatherData | null>(null)
 
 async function onSearch() {
-  const city = input.value.trim()
-  if (!city) return
-  await fetchWeather(city)
+  weather.value = null
+  suggestions.value = await searchCities(input.value.trim())
+  if (suggestions.value.length === 1) {
+    await selectCity(suggestions.value[0])
+  }
+}
+
+async function selectCity(s: CitySuggestion) {
+  suggestions.value = []
+  input.value = s.state
+    ? `${s.name}／${s.state}`
+    : s.name
+  weather.value = await fetchWeatherByCoord(s.lat, s.lon)
+}
+
+// ★地図から座標を受け取る★
+async function onMapSelect(lat: number, lon: number) {
+  console.log(`Selected coordinates: ${lat}, ${lon}`)
+  weather.value = null
+  // テキスト入力欄に座標も残しておきたい場合
+  input.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+  weather.value = await fetchWeatherByCoord(lat, lon)
 }
 </script>
 
 <style scoped>
-.weather-form {
-  max-width: 400px;
-  margin: 40px auto;
-  text-align: center;
-}
-.weather-form input {
-  padding: 8px;
-  width: 70%;
-  margin-right: 8px;
-}
-.weather-form button {
-  padding: 8px 12px;
-}
-.error {
-  color: red;
-  margin-top: 12px;
-}
-.weather-result {
-  margin-top: 20px;
+.weather-form { max-width: 600px; margin: 0 auto; }
+.map-container {
+  margin-top: 16px;
+  height: 300px;
+  border: 1px solid #ccc;
 }
 </style>
