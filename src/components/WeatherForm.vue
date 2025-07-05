@@ -20,25 +20,40 @@
     </div>
 
     <CityPickerMap
-      :initialCenter="mapCenter"  :initialZoom="mapZoom"     @select="onMapSelect"
+      :initialCenter="mapCenter"
+      :initialZoom="mapZoom"
+      @select="onMapSelect"
     />
 
     <div v-if="weather" class="weather-result">
       <h2>{{ weather.cityName }} の天気</h2>
       <p>緯度: {{ weather.lat.toFixed(4) }}, 経度: {{ weather.lon.toFixed(4) }}</p>
-      <p>{{ weather.description }}</p>
+      
+      <div class="weather-summary">
+        <img :src="weatherIconUrl" :alt="weather.description" v-if="weatherIconUrl" class="weather-icon" />
+        <p class="weather-description">{{ weather.description }}</p>
+      </div>
+      
       <p>
         気温: {{ weather.temp.toFixed(1) }}°C
         (体感: {{ weather.feels_like.toFixed(1) }}°C)
       </p>
       <p>湿度: {{ weather.humidity }}%</p>
+
+      <div class="weather-details">
+        <p>風速: {{ weather.windSpeed.toFixed(1) }} m/s (風向: {{ weather.windDeg }}°)</p>
+        <p>気圧: {{ weather.pressure }} hPa</p>
+        <p>雲量: {{ weather.clouds }}%</p>
+        <p>日の出: {{ formattedSunrise }}</p>
+        <p>日の入り: {{ formattedSunset }}</p>
+      </div>
     </div>
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { ref, watch } from 'vue' // watch もインポート
+import { ref, watch, computed } from 'vue' // computed もインポート
 import CityPickerMap from '@/components/CityPickerMap.vue'
 import {
   searchCities,
@@ -51,49 +66,69 @@ const input = ref('')
 const suggestions = ref<CitySuggestion[]>([])
 const weather = ref<WeatherData | null>(null)
 
-// ★追加: 地図の中心とズームをリアクティブにするためのref★
 const mapCenter = ref<[number, number]>([33.5903, 130.4017]); // 初期値は福岡
 const mapZoom = ref(12);
+
+// ★追加: 天気アイコンURLを生成するcomputedプロパティ★
+const weatherIconUrl = computed(() => {
+  if (weather.value?.iconCode) {
+    return `https://openweathermap.org/img/wn/${weather.value.iconCode}@2x.png`;
+  }
+  return null;
+});
+
+// ★追加: 日の出時刻をフォーマットするcomputedプロパティ★
+const formattedSunrise = computed(() => {
+  if (weather.value?.sunrise) {
+    // Unixタイムスタンプは秒単位なので、ミリ秒に変換
+    return new Date(weather.value.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  return 'N/A';
+});
+
+// ★追加: 日の入り時刻をフォーマットするcomputedプロパティ★
+const formattedSunset = computed(() => {
+  if (weather.value?.sunset) {
+    return new Date(weather.value.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  return 'N/A';
+});
+
 
 async function onSearch() {
   weather.value = null
   suggestions.value = await searchCities(input.value.trim())
   
   if (suggestions.value.length > 0) {
-    // 候補が複数ある場合はリスト表示、一つなら自動選択
     if (suggestions.value.length === 1) {
       await selectCity(suggestions.value[0]);
     }
   } else {
-    // 候補が見つからない場合
     alert('都市が見つかりませんでした。');
   }
 }
 
 async function selectCity(s: CitySuggestion) {
-  suggestions.value = []; // サジェストリストを非表示
-  input.value = s.state // input フィールドの表示を都市名に
+  suggestions.value = [];
+  input.value = s.state
     ? `${s.name}／${s.state}`
     : s.name;
   
-  // 地図の中心を移動
   mapCenter.value = [s.lat, s.lon];
-  mapZoom.value = 12; // 都市選択時はズームを調整
+  mapZoom.value = 12;
 
   const fetchedWeather = await fetchWeatherByCoord(s.lat, s.lon);
   if (fetchedWeather) {
-    weather.value = { ...fetchedWeather, lat: s.lat, lon: s.lon }; // 緯度経度を追加して保存
+    weather.value = { ...fetchedWeather, lat: s.lat, lon: s.lon };
   }
 }
 
-// 地図から座標を受け取る (既存のまま)
 async function onMapSelect(lat: number, lon: number) {
   console.log(`Selected coordinates from map: ${lat}, ${lon}`)
-  suggestions.value = []; // サジェストリストを非表示
+  suggestions.value = [];
   input.value = `緯度: ${lat.toFixed(4)}, 経度: ${lon.toFixed(4)}`;
   
-  // 地図の中心を更新 (地図クリック時に移動しないように調整)
-  mapCenter.value = [lat, lon]; // 地図クリックで地図が移動するのを防ぐなら、この行は削除
+  mapCenter.value = [lat, lon];
 
   const fetchedWeather = await fetchWeatherByCoord(lat, lon);
   if (fetchedWeather) {
@@ -101,7 +136,6 @@ async function onMapSelect(lat: number, lon: number) {
   }
 }
 
-// input が変更されたらサジェストをクリアする (オプション)
 watch(input, (newValue) => {
   if (newValue.trim() === '') {
     suggestions.value = [];
@@ -118,7 +152,7 @@ watch(input, (newValue) => {
 
 .suggestions {
   position: absolute;
-  top: 100%; /* inputの下に表示 */
+  top: 100%;
   left: 0;
   right: 0;
   background-color: white;
@@ -127,7 +161,7 @@ watch(input, (newValue) => {
   list-style: none;
   padding: 0;
   margin: 0;
-  z-index: 1000; /* 他の要素の上に表示 */
+  z-index: 1000;
   max-height: 200px;
   overflow-y: auto;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -157,4 +191,28 @@ watch(input, (newValue) => {
 .weather-result { margin-top: 20px; padding-top: 20px; border-top: 1px dashed #eee; text-align: left; }
 .weather-result h2 { text-align: center; margin-bottom: 10px; color: #333; }
 .weather-result p { margin-bottom: 5px; }
+
+/* ★追加スタイル: 天気アイコンと説明の配置★ */
+.weather-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+}
+.weather-icon {
+    width: 60px; /* アイコンサイズ */
+    height: 60px;
+    margin-right: 10px;
+}
+.weather-description {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+.weather-details {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px dashed #f0f0f0;
+    font-size: 0.9em;
+    color: #555;
+}
 </style>

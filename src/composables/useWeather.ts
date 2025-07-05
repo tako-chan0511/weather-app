@@ -15,8 +15,16 @@ export interface WeatherData {
   temp: number
   feels_like: number
   humidity: number
-  lat: number // ★追加: 緯度
-  lon: number // ★追加: 経度
+  lat: number
+  lon: number
+  // ★追加項目★
+  windSpeed: number // 風速
+  windDeg: number // 風向（度）
+  pressure: number // 気圧
+  clouds: number // 雲量
+  sunrise: number // 日の出時刻 (Unix UTC)
+  sunset: number // 日の入り時刻 (Unix UTC)
+  iconCode: string // 天気アイコンコード
 }
 
 // OpenWeatherMap のジオコーディングAPI（都市名→緯度経度）
@@ -43,8 +51,16 @@ export async function fetchWeatherByName(city: string): Promise<WeatherData> {
     temp: data.main.temp,
     feels_like: data.main.feels_like,
     humidity: data.main.humidity,
-    lat: data.coord.lat, // ★追加
-    lon: data.coord.lon, // ★追加
+    lat: data.coord.lat,
+    lon: data.coord.lon,
+    // ★追加項目のデータ抽出★
+    windSpeed: data.wind.speed,
+    windDeg: data.wind.deg,
+    pressure: data.main.pressure,
+    clouds: data.clouds.all,
+    sunrise: data.sys.sunrise,
+    sunset: data.sys.sunset,
+    iconCode: data.weather[0].icon,
   }
 }
 
@@ -65,7 +81,15 @@ export async function fetchWeatherByCoord(
     temp: data.main.temp,
     feels_like: data.main.feels_like,
     humidity: data.main.humidity,
-    lat: data.coord.lat, // ★追加
-    lon: data.coord.lon, // ★追加
+    lat: data.coord.lat,
+    lon: data.coord.lon,
+    // ★追加項目のデータ抽出★
+    windSpeed: data.wind.speed,
+    windDeg: data.wind.deg,
+    pressure: data.main.pressure,
+    clouds: data.clouds.all,
+    sunrise: data.sys.sunrise,
+    sunset: data.sys.sunset,
+    iconCode: data.weather[0].icon,
   }
 }
