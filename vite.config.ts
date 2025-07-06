@@ -2,17 +2,15 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
-import commonjs from '@rollup/plugin-commonjs' // CommonJS プラグインをインポート
+import commonjs from '@rollup/plugin-commonjs'
 
 export default defineConfig({
-  base: '/weather-app/', // GitHub Pagesのリポジトリ名に合わせてください (例: /weather-app/)
+  base: '/weather-app/', // GitHub Pagesのリポジトリ名に合わせてください
   
   plugins: [
     vue(),
-    // Rollup の CommonJS プラグインを挿入 (node_modules内のCommonJSモジュールを変換)
     commonjs({
       include: /node_modules/,
-      // transformMixedEsModules: true, // 必要に応じて有効化
     }),
   ],
   
@@ -22,11 +20,11 @@ export default defineConfig({
     },
   },
   
-  // 依存プリバンドル時のCommonJSモジュール変換を最適化 (開発用)
   optimizeDeps: {
+    // 依存プリバンドル時に CommonJS モジュールを先回りして変換
+    // 'leaflet' はここで含めたままでOK (開発用)
     include: [
-      'leaflet', // Leafletを含める
-      // Leafletが依存する可能性のあるCommonJSモジュールもリストアップ
+      'leaflet',
       'object-assign', 
       'geojson-equality',
       'earcut',
@@ -36,44 +34,36 @@ export default defineConfig({
   },
   
   build: {
-    // Rollup の CommonJS プラグインの設定 (本番ビルド用)
     commonjsOptions: {
       include: /node_modules/,
-      transformMixedEsModules: true, // ES Modulesと混在するCommonJSモジュールを変換
+      transformMixedEsModules: true,
     },
-    // LeafletをRollupが外部モジュールとして扱い、グローバルな 'L' を参照するように指示
-    // これにより、UMDグローバルエラーを回避
-    rollupOptions: {
-      external: ['leaflet'], // Leafletを外部モジュールとして扱う
-      output: {
-        globals: {
-          leaflet: 'L', // 'leaflet' モジュールがグローバルな 'L' を参照するようにする
-        },
-      },
-    },
+    // ★重要修正: Leaflet に関する rollupOptions を削除★
+    // RollupがLeafletを外部モジュールとして扱わないようにする
+    // これにより、Leafletは通常の依存関係としてバンドルに含まれる
+    // rollupOptions: { // このブロック全体を削除
+    //   external: ['leaflet'], 
+    //   output: {
+    //     globals: {
+    //       leaflet: 'L',
+    //     },
+    //   },
+    // },
   },
   
-  // ★重要追加: プロキシ設定 (ローカル開発用)★
   server: {
-    port: 3000, // 開発サーバーのポート
+    port: 3000,
     proxy: {
-      '/locationiq-api': { // アプリからのリクエストパス (例: /locationiq-api/search)
-        target: 'https://us1.locationiq.com', // LocationIQのAPIエンドポイント
-        changeOrigin: true, // オリジンをターゲットのURLに変更 (CORS対策)
-        rewrite: (path) => path.replace(/^\/locationiq-api/, ''), // /locationiq-api を削除して転送
+      '/locationiq-api': {
+        target: 'https://us1.locationiq.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/locationiq-api/, ''),
         configure: (proxy, options) => {
-          // User-Agentヘッダーを付与 (Nominatim/LocationIQの要件)
           options.headers = {
-            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)', // あなたのアプリ名と連絡先情報
+            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)',
           };
         },
       },
     },
   },
-  
-  // process.env の shim (Vue CLIからの移行でよく使われるが、Viteでは通常不要)
-  // もしViteで'process is not defined'のようなエラーが出る場合のみ必要
-  // define: {
-  //   'process.env': {},
-  // },
 })
