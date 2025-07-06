@@ -9,6 +9,12 @@ export interface CitySuggestion {
   country: string
   state?: string
 }
+// ★追加: 住所検索結果の型定義★
+export interface GeocodedAddress {
+  display_name: string; // "福岡市中央区天神、福岡市、福岡県、日本" のような詳細な住所
+  lat: string; // 緯度 (文字列なので後で数値に変換)
+  lon: string; // 経度 (文字列なので後で数値に変換)
+}
 export interface WeatherData {
   cityName: string
   description: string
@@ -31,9 +37,10 @@ export interface WeatherData {
 // OpenWeatherMap のジオコーディングAPI（都市名→緯度経度）
 export async function searchCities(name: string): Promise<CitySuggestion[]> {
   const key = import.meta.env.VITE_OWM_API_KEY
+  // ★修正: ",jp" を追加して日本国内に限定する★
   const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
     name
-  )}&limit=5&appid=${key}`
+  )},jp&limit=5&appid=${key}` // ★変更点: ,jp を追加
   const res = await fetch(url)
   return (await res.json()) as CitySuggestion[]
 }
@@ -127,4 +134,17 @@ export async function fetchForecastByCoord(
   });
 
   return forecastList;
+}
+
+// ★追加: Nominatim APIを使った住所検索関数★
+export async function geocodeAddress(address: string): Promise<GeocodedAddress[]> {
+  // NominatimのURL。検索結果を日本国内に限定するため 'countrycodes=jp' を追加
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5&countrycodes=jp`;
+  
+  // NominatimはUser-Agentを推奨しています（ただし必須ではありませんが、リクエスト頻度が高いとブロックされる可能性あり）
+  // ブラウザのfetchではUser-Agentを直接設定できないため、ここでは省略
+  const res = await fetch(url);
+  const data = await res.json();
+  
+  return data as GeocodedAddress[];
 }
