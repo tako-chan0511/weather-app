@@ -5,8 +5,13 @@ import path from 'path'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default defineConfig({
-  base: '/weather-app/', // GitHub Pagesのリポジトリ名に合わせてください
-  
+  // ★重要修正: ローカル開発時の base パス設定★
+  // ローカル開発サーバーでは '/' を使用し、ビルド時のみ '/weather-app/' を適用
+  base: process.env.NODE_ENV === 'production' ? '/weather-app/' : '/', 
+  // ↑ Vercel のデフォルトデプロイ (.vercel.app ドメイン) は通常ルートパス '/' なので
+  // 本番も '/' にすべきですが、GitHub Pages にデプロイする可能性があるため、一旦 '/weather-app/' を維持します。
+  // Vercel にデプロイするなら、本番も '/' が適切です。
+
   plugins: [
     vue(),
     commonjs({
@@ -21,8 +26,6 @@ export default defineConfig({
   },
   
   optimizeDeps: {
-    // 依存プリバンドル時に CommonJS モジュールを先回りして変換
-    // 'leaflet' はここで含めたままでOK (開発用)
     include: [
       'leaflet',
       'object-assign', 
@@ -38,29 +41,19 @@ export default defineConfig({
       include: /node_modules/,
       transformMixedEsModules: true,
     },
-    // ★重要修正: Leaflet に関する rollupOptions を削除★
-    // RollupがLeafletを外部モジュールとして扱わないようにする
-    // これにより、Leafletは通常の依存関係としてバンドルに含まれる
-    // rollupOptions: { // このブロック全体を削除
-    //   external: ['leaflet'], 
-    //   output: {
-    //     globals: {
-    //       leaflet: 'L',
-    //     },
-    //   },
-    // },
   },
   
   server: {
     port: 3000,
     proxy: {
-      '/locationiq-api': {
+      // ローカル開発サーバーは常に /api からのプロキシを受け付ける
+      '/api': { 
         target: 'https://us1.locationiq.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/locationiq-api/, ''),
+        rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy, options) => {
           options.headers = {
-            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)',
+            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)', 
           };
         },
       },

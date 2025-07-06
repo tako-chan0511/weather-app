@@ -136,23 +136,20 @@ export async function fetchForecastByCoord(
   return forecastList;
 }
 
-// ★重要修正: LocationIQ APIの代わりに Vercel Function のエンドポイントを呼び出す★
 export async function geocodeAddress(address: string): Promise<GeocodedAddress[]> {
-  // LocationIQ APIキーはサーバーサイドのVercel Functionで管理されるため、ここでは不要
-  // const key = import.meta.env.VITE_LOCATIONIQ_API_KEY; // この行は不要になる
+  const key = import.meta.env.VITE_LOCATIONIQ_API_KEY;
 
-  // Vercel Function のエンドポイントを呼び出す
-  const url = `/api/geocode?q=${encodeURIComponent(address)}`; // ★修正: URLを Vercel Function のパスに変更★
+  // URLは常にルートからの相対パス /api/geocode を使用
+  const url = `/api/geocode?q=${encodeURIComponent(address)}&key=${key}&format=json&limit=5&countrycodes=jp`; 
   
   try {
-    console.log("Calling Vercel Function API:", url);
+    console.log("Calling Geocoding API via proxy:", url);
     const res = await fetch(url);
 
     if (!res.ok) {
       const errorData = await res.json();
-      console.error("Vercel Function error response:", res.status, errorData);
-      // Vercel Functionからのエラーメッセージをユーザーに伝える
-      throw new Error(`住所検索エラー: ${errorData.error || res.statusText} (Status: ${res.status})`);
+      console.error("Geocoding API proxy error response:", res.status, errorData);
+      throw new Error(`住所検索APIエラー (Status: ${res.status}): ${errorData.error || res.statusText || '不明なエラー'}`);
     }
     const data = await res.json();
     
@@ -161,9 +158,13 @@ export async function geocodeAddress(address: string): Promise<GeocodedAddress[]
     }
 
     return data as GeocodedAddress[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in geocodeAddress (client-side):", error);
-    // エラーメッセージを再スローして WeatherForm.vue で表示させる
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error('ネットワーク接続、またはサーバーレス関数のデプロイに問題があるようです。');
+    } else if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        throw new Error('サーバーからの応答が不正です。APIキーまたはサーバーレス関数の設定を確認してください。');
+    }
     throw error;
   }
 }
