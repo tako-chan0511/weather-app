@@ -5,58 +5,53 @@ import path from 'path'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default defineConfig({
-  base: '/', 
-  
+  base: '/',             // GitHub Pages や Vercel のサブパスが不要なら `/` のまま
   plugins: [
     vue(),
+    // node_modules の UMD モジュールを CommonJS → ESModule に変換する
     commonjs({
-      include: /node_modules/,
+      include: /node_modules/
     }),
   ],
-  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  
+  // 開発中に vite が事前バンドルしてほしいライブラリ群
   optimizeDeps: {
     include: [
+      'vue3-leaflet',
       'leaflet',
-      'object-assign', 
+      'object-assign',
       'geojson-equality',
       'earcut',
       'rbush',
       'deep-equal',
-    ],
+    ]
   },
-  
   build: {
+    // 本番ビルド時にも同じ CommonJS 変換が必要な場合
     commonjsOptions: {
       include: /node_modules/,
       transformMixedEsModules: true,
-    },
+    }
   },
-  
   server: {
     port: 3000,
+    // ローカルで /api/geocode → LocationIQ にプロキシ
     proxy: {
-      // ★最終修正: LocationIQのプロキシ設定★
-      // クライアントからのリクエストパス: /api/geocode (例: http://localhost:3000/api/geocode?q=福岡...)
-      // target: LocationIQのホスト全体
-      // rewrite: /api/geocode を LocationIQ の API パス (/v1/search.php) に置き換える
-      '/api/geocode': { 
-        target: 'https://us1.locationiq.com', // LocationIQのベースURL
+      '/api/geocode': {
+        target: 'https://us1.locationiq.com',
         changeOrigin: true,
-        // rewrite は、'/api/geocode' の部分を '/v1/search.php' に正確に書き換える
-        // クエリパラメータ '?key=...' などはそのまま引き継がれる
-        rewrite: (path) => path.replace(/^\/api\/geocode/, '/v1/search.php'), 
+        rewrite: (p) => p.replace(/^\/api\/geocode/, '/v1/search.php'),
+        // LocationIQ の利用規約として User-Agent を付ける
         configure: (proxy, options) => {
           options.headers = {
-            'User-Agent': 'WeatherApp/1.0 (harakeisuke7@gmail.com)', // あなたのメールアドレス
-          };
-        },
-      },
-    },
-  },
+            'User-Agent': 'WeatherApp/1.0 (your-email@example.com)',
+          }
+        }
+      }
+    }
+  }
 })
