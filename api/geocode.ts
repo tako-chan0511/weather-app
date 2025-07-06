@@ -1,8 +1,11 @@
 // api/geocode.ts
-import type { VercelRequest, VercelResponse } from '@vercel/node'
+// import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { q, limit = '5', countrycodes = 'jp' } = req.query
+// ↑ @vercel/node の型インポートは削除
+export default async function handler(req: any, res: any) {
+  const q = String(req.query.q || '')
+  const limit = String(req.query.limit || '5')
+  const countrycodes = String(req.query.countrycodes || 'jp')
   const key = process.env.LOCATIONIQ_KEY
   if (!key) {
     return res.status(500).send('LocationIQ API key is not configured.')
@@ -11,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url =
     `https://us1.locationiq.com/v1/search.php` +
     `?key=${key}` +
-    `&q=${encodeURIComponent(String(q))}` +
+    `&q=${encodeURIComponent(q)}` +
     `&format=json` +
     `&limit=${limit}` +
     `&countrycodes=${countrycodes}`
@@ -20,10 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiRes = await fetch(url)
     const json = await apiRes.json()
     if (!apiRes.ok) {
-      // API 側のエラーをそのまま返す
       return res.status(apiRes.status).json(json)
     }
-    // CORS ヘッダーを付与
     res.setHeader('Access-Control-Allow-Origin', '*')
     return res.status(200).json(json)
   } catch (e: any) {
