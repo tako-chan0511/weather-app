@@ -136,45 +136,34 @@ export async function fetchForecastByCoord(
   return forecastList;
 }
 
-// ★重要修正: Nominatim APIを使った住所検索関数 geocodeAddress ★
+// ★重要修正: LocationIQ APIの代わりに Vercel Function のエンドポイントを呼び出す★
 export async function geocodeAddress(address: string): Promise<GeocodedAddress[]> {
-  const key = import.meta.env.VITE_LOCATIONIQ_API_KEY;
+  // LocationIQ APIキーはサーバーサイドのVercel Functionで管理されるため、ここでは不要
+  // const key = import.meta.env.VITE_LOCATIONIQ_API_KEY; // この行は不要になる
 
-  // 住所の正規化や、番地以下の情報を省くなどの前処理を検討することも有効。
-  // 例: '福岡市西区姪浜4丁目' -> '福岡市西区姪浜' (ここではそのまま渡す)
-  
-  const url = `/locationiq-api/v1/search.php?key=${key}&q=${encodeURIComponent(address)}&format=json&limit=5&countrycodes=jp`;
+  // Vercel Function のエンドポイントを呼び出す
+  const url = `/api/geocode?q=${encodeURIComponent(address)}`; // ★修正: URLを Vercel Function のパスに変更★
   
   try {
-    console.log("Proxying LocationIQ API Request URL:", url);
+    console.log("Calling Vercel Function API:", url);
     const res = await fetch(url);
 
     if (!res.ok) {
       const errorData = await res.json();
-      console.error("LocationIQ API error response:", res.status, errorData);
-      
-      // ★修正: より具体的なエラーメッセージを投げる★
-      if (res.status === 404) {
-          throw new Error('指定された住所が見つかりませんでした。詳細な番地を省いて再検索をお試しください。');
-      } else if (res.status === 401 || res.status === 403) {
-          throw new Error('APIキーが無効、またはアクセスが拒否されました。設定を確認してください。');
-      } else if (res.status === 429) {
-          throw new Error('リクエストが多すぎます。しばらくしてから再試行してください。');
-      } else {
-          throw new Error(`住所検索APIエラー: ${errorData.error || res.statusText} (Status: ${res.status})`);
-      }
+      console.error("Vercel Function error response:", res.status, errorData);
+      // Vercel Functionからのエラーメッセージをユーザーに伝える
+      throw new Error(`住所検索エラー: ${errorData.error || res.statusText} (Status: ${res.status})`);
     }
     const data = await res.json();
     
-    // データが空の場合もエラーとして扱う (APIが空配列を返す場合)
     if (!data || data.length === 0) {
         throw new Error('指定された住所の候補が見つかりませんでした。');
     }
 
     return data as GeocodedAddress[];
   } catch (error) {
-    console.error("Error in geocodeAddress:", error);
-    // Promise.reject(error) の代わりに、直接エラーを再スロー
-    throw error; // ここでエラーを再スローすることで呼び出し元でキャッチできる
+    console.error("Error in geocodeAddress (client-side):", error);
+    // エラーメッセージを再スローして WeatherForm.vue で表示させる
+    throw error;
   }
 }
