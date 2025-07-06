@@ -136,15 +136,45 @@ export async function fetchForecastByCoord(
   return forecastList;
 }
 
-// ★追加: Nominatim APIを使った住所検索関数★
+// ★重要修正: Nominatim APIを使った住所検索関数 geocodeAddress ★
 export async function geocodeAddress(address: string): Promise<GeocodedAddress[]> {
-  // NominatimのURL。検索結果を日本国内に限定するため 'countrycodes=jp' を追加
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5&countrycodes=jp`;
+  const key = import.meta.env.VITE_LOCATIONIQ_API_KEY;
+
+  // 住所の正規化や、番地以下の情報を省くなどの前処理を検討することも有効。
+  // 例: '福岡市西区姪浜4丁目' -> '福岡市西区姪浜' (ここではそのまま渡す)
   
-  // NominatimはUser-Agentを推奨しています（ただし必須ではありませんが、リクエスト頻度が高いとブロックされる可能性あり）
-  // ブラウザのfetchではUser-Agentを直接設定できないため、ここでは省略
-  const res = await fetch(url);
-  const data = await res.json();
+  const url = `/locationiq-api/v1/search.php?key=${key}&q=${encodeURIComponent(address)}&format=json&limit=5&countrycodes=jp`;
   
-  return data as GeocodedAddress[];
+  try {
+    console.log("Proxying LocationIQ API Request URL:", url);
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("LocationIQ API error response:", res.status, errorData);
+      
+      // ★修正: より具体的なエラーメッセージを投げる★
+      if (res.status === 404) {
+          throw new Error('指定された住所が見つかりませんでした。詳細な番地を省いて再検索をお試しください。');
+      } else if (res.status === 401 || res.status === 403) {
+          throw new Error('APIキーが無効、またはアクセスが拒否されました。設定を確認してください。');
+      } else if (res.status === 429) {
+          throw new Error('リクエストが多すぎます。しばらくしてから再試行してください。');
+      } else {
+          throw new Error(`住所検索APIエラー: ${errorData.error || res.statusText} (Status: ${res.status})`);
+      }
+    }
+    const data = await res.json();
+    
+    // データが空の場合もエラーとして扱う (APIが空配列を返す場合)
+    if (!data || data.length === 0) {
+        throw new Error('指定された住所の候補が見つかりませんでした。');
+    }
+
+    return data as GeocodedAddress[];
+  } catch (error) {
+    console.error("Error in geocodeAddress:", error);
+    // Promise.reject(error) の代わりに、直接エラーを再スロー
+    throw error; // ここでエラーを再スローすることで呼び出し元でキャッチできる
+  }
 }

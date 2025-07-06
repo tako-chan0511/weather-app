@@ -3,8 +3,10 @@
     <div class="search-container">
       <input
         v-model="input"
-        @keyup.enter="performSearch" :placeholder="searchType === 'city' ? '都市名を入力' : '住所を入力'" />
-      <button @click="performSearch">取得</button>
+        @keyup.enter="performSearch"
+        :placeholder="searchType === 'city' ? '都市名を入力' : '住所を入力 (番地を省くと見つかりやすい場合があります)'" />
+      <button @click="performSearch" :disabled="isLoading"> 取得
+      </button>
     </div>
 
     <div class="search-type-selector">
@@ -39,6 +41,10 @@
         {{ addr.display_name }}
       </li>
     </ul>
+
+    <p v-if="isLoading" class="status-message loading-message">天気情報を取得中...</p>
+    <p v-if="errorMessage" class="status-message error-message">{{ errorMessage }}</p>
+
 
     <CityPickerMap
       :initialCenter="mapCenter"
@@ -91,23 +97,25 @@ import CityPickerMap from '@/components/CityPickerMap.vue'
 import {
   searchCities,
   fetchWeatherByCoord,
-  geocodeAddress, // ★追加: geocodeAddress もインポート
+  geocodeAddress,
   CitySuggestion,
   WeatherData,
-  GeocodedAddress, // ★追加: GeocodedAddress もインポート
+  GeocodedAddress,
 } from '@/composables/useWeather'
 
 const input = ref('')
 const suggestions = ref<CitySuggestion[]>([])
 const weather = ref<WeatherData | null>(null)
 
-// ★追加: 検索タイプを管理するref (デフォルトは都市名)★
 const searchType = ref<'city' | 'address'>('city');
-// ★追加: 住所検索結果の候補を管理するref★
 const addressSuggestions = ref<GeocodedAddress[]>([]);
 
 const mapCenter = ref<[number, number]>([33.5903, 130.4017]); // 初期値は福岡
 const mapZoom = ref(12);
+
+// ★追加: ローディング状態とエラーメッセージ用のref★
+const isLoading = ref(false);
+const errorMessage = ref('');
 
 const weatherIconUrl = computed(() => {
   if (weather.value?.iconCode) {
@@ -130,40 +138,47 @@ const formattedSunset = computed(() => {
   return 'N/A';
 });
 
-// ★修正: 検索実行関数 (都市名検索と住所検索を切り替える)★
+
 async function performSearch() {
   weather.value = null;
-  suggestions.value = []; // 都市名サジェストをクリア
-  addressSuggestions.value = []; // 住所サジェストをクリア
+  suggestions.value = [];
+  addressSuggestions.value = [];
+  errorMessage.value = ''; // ★追加: エラーメッセージをクリア★
+  isLoading.value = true; // ★追加: ローディング開始★
 
   const trimmedInput = input.value.trim();
   if (!trimmedInput) {
     alert('検索キーワードを入力してください。');
+    isLoading.value = false; // ★追加: ローディング終了★
     return;
   }
 
-  if (searchType.value === 'city') {
-    // 都市名で検索 (OpenWeatherMap)
-    suggestions.value = await searchCities(trimmedInput);
-    if (suggestions.value.length === 0) {
-      alert('都市が見つかりませんでした。');
-    } else if (suggestions.value.length === 1) {
-      await selectCity(suggestions.value[0]); // 候補が1つなら自動選択
+  try { // ★追加: try-catch ブロックでエラーを捕捉★
+    if (searchType.value === 'city') {
+      suggestions.value = await searchCities(trimmedInput);
+      if (suggestions.value.length === 0) {
+        errorMessage.value = '都市が見つかりませんでした。';
+      } else if (suggestions.value.length === 1) {
+        await selectCity(suggestions.value[0]);
+      }
+    } else {
+      addressSuggestions.value = await geocodeAddress(trimmedInput);
+      if (addressSuggestions.value.length === 0) {
+        errorMessage.value = '住所が見つかりませんでした。';
+      } else if (addressSuggestions.value.length === 1) {
+        await selectAddress(addressSuggestions.value[0]);
+      }
     }
-  } else {
-    // 住所で検索 (Nominatim)
-    addressSuggestions.value = await geocodeAddress(trimmedInput);
-    if (addressSuggestions.value.length === 0) {
-      alert('住所が見つかりませんでした。');
-    } else if (addressSuggestions.value.length === 1) {
-      await selectAddress(addressSuggestions.value[0]); // 候補が1つなら自動選択
-    }
+  } catch (error: any) { // ★修正: error の型を any にする★
+    errorMessage.value = error.message || '不明な検索エラーが発生しました。';
+    console.error("Search failed:", error);
+  } finally {
+    isLoading.value = false; // ★追加: ローディング終了★
   }
 }
 
-// ★修正: 都市名候補選択時の処理 (CitySuggestion用)★
 async function selectCity(s: CitySuggestion) {
-  suggestions.value = []; // サジェストリストを非表示
+  suggestions.value = [];
   input.value = s.state
     ? `${s.name}／${s.state}`
     : s.name;
@@ -177,10 +192,9 @@ async function selectCity(s: CitySuggestion) {
   }
 }
 
-// ★追加: 住所候補選択時の処理 (GeocodedAddress用)★
 async function selectAddress(addr: GeocodedAddress) {
-  addressSuggestions.value = []; // サジェストリストを非表示
-  input.value = addr.display_name; // 入力欄に詳細住所を表示
+  addressSuggestions.value = [];
+  input.value = addr.display_name;
 
   const lat = parseFloat(addr.lat);
   const lon = parseFloat(addr.lon);
@@ -191,7 +205,7 @@ async function selectAddress(addr: GeocodedAddress) {
   }
   
   mapCenter.value = [lat, lon];
-  mapZoom.value = 15; // 住所検索時はより深くズーム
+  mapZoom.value = 15;
 
   const fetchedWeather = await fetchWeatherByCoord(lat, lon);
   if (fetchedWeather) {
@@ -201,9 +215,9 @@ async function selectAddress(addr: GeocodedAddress) {
 
 async function onMapSelect(lat: number, lon: number) {
   console.log(`Selected coordinates from map: ${lat}, ${lon}`)
-  suggestions.value = []; // 地図クリック時もサジェストをクリア
-  addressSuggestions.value = []; // 地図クリック時も住所サジェストをクリア
-  // input.value = `緯度: ${lat.toFixed(4)}, 経度: ${lon.toFixed(4)}`; // 都市名/住所入力との兼ね合いでコメントアウト
+  suggestions.value = [];
+  addressSuggestions.value = [];
+  // input.value = `緯度: ${lat.toFixed(4)}, 経度: ${lon.toFixed(4)}`; // コメントアウトを維持
   
   mapCenter.value = [lat, lon];
 
@@ -213,35 +227,26 @@ async function onMapSelect(lat: number, lon: number) {
   }
 }
 
-// 入力欄が変更されたらサジェストをクリア (既存のまま)
 watch(input, (newValue) => {
   if (newValue.trim() === '') {
     suggestions.value = [];
-    addressSuggestions.value = []; // 住所サジェストもクリア
+    addressSuggestions.value = [];
+    errorMessage.value = ''; // 入力クリア時にもエラーメッセージをクリア
   }
 });
 
-// 検索タイプが変更されたら入力欄とサジェストをクリア
 watch(searchType, () => {
   input.value = '';
   suggestions.value = [];
   addressSuggestions.value = [];
-  weather.value = null; // 天気情報もクリア
+  weather.value = null;
+  errorMessage.value = ''; // 検索タイプ変更時にもエラーメッセージをクリア
 });
 </script>
 
 <style scoped>
-.weather-form {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  position: relative; /* suggestions-list-absolute の基準にする */
-}
-.search-container { position: relative; margin-bottom: 8px; /* ★修正: マージンを調整 */ display: flex; gap: 8px; }
+.weather-form { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
+.search-container { position: relative; margin-bottom: 8px; display: flex; gap: 8px; }
 .search-container input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
 .search-container button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
 .search-container button:hover { background-color: #0056b3; }
@@ -258,7 +263,7 @@ watch(searchType, () => {
 
 .suggestions-list-absolute {
   position: absolute;
-  top: 95px; /* ★修正: 入力欄+ボタン+ラジオボタンの高さに合わせる */
+  top: 95px; /* weather-form の上部からの絶対位置 (入力欄+ボタン+ラジオボタンの高さに合わせる) */
   left: 20px;
   right: 20px;
   background-color: white;
