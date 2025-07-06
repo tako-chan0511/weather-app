@@ -5,13 +5,8 @@ import path from 'path'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default defineConfig({
-  // ★重要修正: ローカル開発時の base パス設定★
-  // ローカル開発サーバーでは '/' を使用し、ビルド時のみ '/weather-app/' を適用
-  base: process.env.NODE_ENV === 'production' ? '/weather-app/' : '/', 
-  // ↑ Vercel のデフォルトデプロイ (.vercel.app ドメイン) は通常ルートパス '/' なので
-  // 本番も '/' にすべきですが、GitHub Pages にデプロイする可能性があるため、一旦 '/weather-app/' を維持します。
-  // Vercel にデプロイするなら、本番も '/' が適切です。
-
+  base: '/', 
+  
   plugins: [
     vue(),
     commonjs({
@@ -46,14 +41,19 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      // ローカル開発サーバーは常に /api からのプロキシを受け付ける
-      '/api': { 
-        target: 'https://us1.locationiq.com',
+      // ★最終修正: LocationIQのプロキシ設定★
+      // クライアントからのリクエストパス: /api/geocode (例: http://localhost:3000/api/geocode?q=福岡...)
+      // target: LocationIQのホスト全体
+      // rewrite: /api/geocode を LocationIQ の API パス (/v1/search.php) に置き換える
+      '/api/geocode': { 
+        target: 'https://us1.locationiq.com', // LocationIQのベースURL
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // rewrite は、'/api/geocode' の部分を '/v1/search.php' に正確に書き換える
+        // クエリパラメータ '?key=...' などはそのまま引き継がれる
+        rewrite: (path) => path.replace(/^\/api\/geocode/, '/v1/search.php'), 
         configure: (proxy, options) => {
           options.headers = {
-            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)', 
+            'User-Agent': 'WeatherApp/1.0 (harakeisuke7@gmail.com)', // あなたのメールアドレス
           };
         },
       },
