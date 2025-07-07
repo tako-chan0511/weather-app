@@ -1,29 +1,32 @@
 <!-- src/App.vue -->
 <template>
   <div id="app-container">
-    <!-- WeatherForm をメインコンポーネントとして表示 -->
+    <!-- メインの検索＋地図フォーム -->
     <WeatherForm />
   </div>
 </template>
 
 <script setup lang="ts">
-import WeatherForm from '@/components/WeatherForm.vue' // ★追加: WeatherForm をインポート
-// CityPickerMap は WeatherForm の中で使われるため、ここからは削除
+import WeatherForm from '@/components/WeatherForm.vue'
 </script>
 
 <style>
-/* グローバルなスタイル */
+/* 画面全体を包むコンテナ */
 #app-container {
-  font-family: 'Inter', sans-serif; /* Inter フォントを使用 */
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 20px;
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+
+  /* 検索フォームを縦方向に中央寄せしたい場合 */
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh; /* 画面全体を使う */
-  background-color: #f0f2f5; /* 背景色 */
+  justify-content: flex-start;
 }
 </style>
