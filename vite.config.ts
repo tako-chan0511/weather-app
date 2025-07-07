@@ -19,7 +19,7 @@ export default defineConfig({
         name: '天気予報アプリ', // アプリのフルネーム
         short_name: '天気アプリ', // ホーム画面に表示される短い名前
         description: '住所、都市名、地図の位置の該当する天気を表示する。', // アプリの説明
-        start_url: '/weather-app/', // アプリ起動時のURL
+        start_url: '.', // アプリ起動時のURL
         display: 'standalone', // アドレスバーなどを表示しないネイティブアプリのような表示
         background_color: '#ffffff', // スプラッシュ画面の背景色
         theme_color: '#007acc',      // ツールバーの色
