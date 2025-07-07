@@ -2,14 +2,16 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 
-// 1) Leaflet の CSS を読み込む
-import 'leaflet/dist/leaflet.css'
+// Leaflet の CSS は index.html に置いたので不要
+// import 'leaflet/dist/leaflet.css'
 
-// ★2) アイコンのパス設定のJavaScriptコードは、以前の推奨（CSS+public画像コピー）を採用
-// Leaflet のデフォルトアイコンパスを修正するJavaScriptは削除します。
-// 代わりに、Leaflet の CSS が参照する 'images/' ディレクトリに画像を配置することで解決します。
-// このファイルからは L.Icon.Default へのアクセスは行いません。
-
-// import * as L from 'leaflet' // ★削除: Leafletのモジュールインポートは削除 (L.Icon.Default.mergeOptions も削除)
+// Leaflet 本体も CDN から読み込むので import せず、グローバル変数 L を使う
+// TS チェックで怒られる場合は下記コメントで抑制できます。
+// @ts-ignore
+;(window as any).L.Icon.Default.mergeOptions({
+  iconRetinaUrl: '/images/marker-icon-2x.png',
+  iconUrl:       '/images/marker-icon.png',
+  shadowUrl:     '/images/marker-shadow.png',
+})
 
 createApp(App).mount('#app')

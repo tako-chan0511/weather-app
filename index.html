@@ -1,27 +1,24 @@
-<!-- index.html -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-XQoYMqMTK8LoVzU2f+M6Q6Zd2G4w/TF4s5g2J3qE8mM="
+      crossorigin=""
+    />
     <title>Weather App</title>
-
-    <!-- ★ Leaflet の CSS を CDN から読み込む -->
-    <!-- integrity を削除 -->
-   <link
-     rel="stylesheet"
-     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-   />
   </head>
   <body>
     <div id="app"></div>
-
-    <!-- integrity を削除 -->
-   <script
-     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-   ></script>
-
+    <!-- Leaflet 本体を CDN から読み込む -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-sA+z0Xqoe5PT6eB11GmkFUVG6cvSCVzY6qLMWG+B2kM="
+      crossorigin=""
+    ></script>
+    <!-- ここで Vue アプリをマウント -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
