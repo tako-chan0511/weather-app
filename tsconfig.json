@@ -22,6 +22,7 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "env.d.ts"
+    "env.d.ts",
+    "api/**/*.ts"
   ]
 }

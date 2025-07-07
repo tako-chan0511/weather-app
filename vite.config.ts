@@ -5,65 +5,53 @@ import path from 'path'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default defineConfig({
-  base: '/weather-app/', // GitHub Pagesのリポジトリ名に合わせてください
-  
+  base: '/',             // GitHub Pages や Vercel のサブパスが不要なら `/` のまま
   plugins: [
     vue(),
+    // node_modules の UMD モジュールを CommonJS → ESModule に変換する
     commonjs({
-      include: /node_modules/,
+      include: /node_modules/
     }),
   ],
-  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  
+  // 開発中に vite が事前バンドルしてほしいライブラリ群
   optimizeDeps: {
-    // 依存プリバンドル時に CommonJS モジュールを先回りして変換
-    // 'leaflet' はここで含めたままでOK (開発用)
     include: [
+      'vue3-leaflet',
       'leaflet',
-      'object-assign', 
+      'object-assign',
       'geojson-equality',
       'earcut',
       'rbush',
       'deep-equal',
-    ],
+    ]
   },
-  
   build: {
+    // 本番ビルド時にも同じ CommonJS 変換が必要な場合
     commonjsOptions: {
       include: /node_modules/,
       transformMixedEsModules: true,
-    },
-    // ★重要修正: Leaflet に関する rollupOptions を削除★
-    // RollupがLeafletを外部モジュールとして扱わないようにする
-    // これにより、Leafletは通常の依存関係としてバンドルに含まれる
-    // rollupOptions: { // このブロック全体を削除
-    //   external: ['leaflet'], 
-    //   output: {
-    //     globals: {
-    //       leaflet: 'L',
-    //     },
-    //   },
-    // },
+    }
   },
-  
   server: {
     port: 3000,
+    // ローカルで /api/geocode → LocationIQ にプロキシ
     proxy: {
-      '/locationiq-api': {
+      '/api/geocode': {
         target: 'https://us1.locationiq.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/locationiq-api/, ''),
+        rewrite: (p) => p.replace(/^\/api\/geocode/, '/v1/search.php'),
+        // LocationIQ の利用規約として User-Agent を付ける
         configure: (proxy, options) => {
           options.headers = {
-            'User-Agent': 'WeatherApp/1.0 (your_email@example.com)',
-          };
-        },
-      },
-    },
-  },
+            'User-Agent': 'WeatherApp/1.0 (your-email@example.com)',
+          }
+        }
+      }
+    }
+  }
 })
