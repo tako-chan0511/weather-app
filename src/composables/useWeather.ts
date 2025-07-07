@@ -40,7 +40,7 @@ export async function searchCities(name: string): Promise<CitySuggestion[]> {
   // ★修正: ",jp" を追加して日本国内に限定する★
   const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
     name
-  )},jp&limit=5&appid=${key}` // ★変更点: ,jp を追加
+  )}&limit=5&appid=${key}` // ★変更点: ,jp を追加→jp削除で全世界対応
   const res = await fetch(url)
   return (await res.json()) as CitySuggestion[]
 }

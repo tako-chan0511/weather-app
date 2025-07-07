@@ -22,7 +22,7 @@
       </label>
       <label>
         <input type="radio" v-model="searchType" value="address" />
-        住所で検索
+        住所で検索（日本国内）
       </label>
     </div>
 
