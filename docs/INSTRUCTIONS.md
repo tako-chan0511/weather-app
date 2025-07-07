@@ -23,7 +23,7 @@
 3. Enterキーまたは「取得」ボタンをクリック
 4. 取得結果が画面下部に表示されます
 
-![都市名検索](./images/city-search.png)
+
 
 ### 2.2 住所で検索
 
@@ -33,7 +33,7 @@
 4. 候補リストから該当の住所をクリック
 5. 緯度経度がマップと結果欄に反映されます
 
-![住所検索](./images/address-search.png)
+
 
 ### 2.3 検索結果の見方
 
@@ -61,7 +61,6 @@
 1. マーカーをクリック後、即座に天気情報を取得
 2. 画面下部に天気結果が更新されます
 
-![地図クリック](./images/map-click.png)
 
 ---
 
@@ -76,7 +75,7 @@
 
 * 各アイテムに日時・天気アイコン・気温・説明が表示されます
 
-![予報リスト](./images/forecast-list.png)
+
 
 ---
 
@@ -95,4 +94,4 @@
 **Q1. スマホで地図が動かない**
 A1. ブラウザのJavaScriptが有効か確認、最新版に更新してください。
 
-**お問い合わせ**: [your-email@example.com](mailto:your-email@example.com)
+**お問い合わせ**: [your-email@example.com](mailto:harakeisuke7@gmail.com)
