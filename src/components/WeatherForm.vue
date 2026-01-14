@@ -18,7 +18,7 @@
     <div class="search-type-selector">
       <label>
         <input type="radio" v-model="searchType" value="city" />
-        都市名で検索
+        都市名で検索（全世界）
       </label>
       <label>
         <input type="radio" v-model="searchType" value="address" />
